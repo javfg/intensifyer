@@ -1,19 +1,26 @@
 #! /usr/bin/env python3.7
-# coding=utf-8
+# -*- coding: utf-8 -*-
 
 import logging
-from pathlib import Path
+import shutil
 from datetime import datetime
-import numpy
-from io import BytesIO
+from pathlib import Path
 
+import numpy
 from telegram.ext import Updater, CommandHandler, MessageHandler, Filters
+from telegram import ParseMode
 from PIL import Image
 import imageio
+import cv2
+
+from facealign import detect_faces
 
 
-CROPPING_PERCENT = 5
-INTENSITY = 4
+CROPPING_PERCENT = 3
+INTENSITY = 3
+
+users = {}
+help_msgs = ["Here is the *help*!", "Send me a *photo* and I will intensify it."]
 
 
 # Logging.
@@ -32,11 +39,15 @@ def start(update, context):
 
 def print_help(update, context):
     """Sends help message when /help is issued."""
+    global help_msgs
     username = update.message.from_user.username
 
     logging.info(f"user [{username}] asked for help")
 
-    update.message.reply_text("For now, you can send me a pic of something you want to intensify.")
+    for help_msg in help_msgs:
+        context.bot.send_message(chat_id=update.message.chat_id,
+                                 text=help_msg,
+                                 parse_mode=ParseMode.MARKDOWN)
 
 
 def get_todays_path(now):
@@ -73,11 +84,10 @@ def send_result(intensyfied_filename, update, context):
     context.bot.send_video(chat_id=update.message.chat_id, video=intensyfied_video, supports_streaming=True)
 
 
-def generate_crop_images(image_filename, cropping_percent):
+def generate_crop_images(image, cropping_percent):
     """Generates cropped parts of the animation."""
-    logging.info(f"generating crops for [{image_filename}]")
+    logging.info(f"generating crops")
 
-    image = Image.open(image_filename)
     width, height = image.size
     crop_size = width * (cropping_percent / 100)
     image_lcrop = image.crop((crop_size, 0, width, height))
@@ -103,27 +113,68 @@ def generate_mp4(image_list, image_filename):
     return intensyfied_filename
 
 
+def generate_stare(image_filename):
+    """Finds faces in image and crops one of them to process."""
+    logging.info(f"extracting stare from [{image_filename}]")
+
+    image = cv2.imread(image_filename)
+    faces = detect_faces(image)
+
+    if len(faces) == 0:
+        return
+
+    shutil.copyfile(image_filename, f"{image_filename}-full.jpg")
+    cv2.imwrite(image_filename, image[faces[0][2]:faces[0][4], faces[0][1]:faces[0][3]])
+
 
 def process_image(update, context):
     """Main task. Get image, cut some pixels from each side, create a gif and send back."""
+    global users
     username = update.message.from_user.username
-    logging.info(f"[{username}] sent an image")
+    logging.info(f"user [{username}] sent an image")
 
     file_id = update.message.photo[-1].file_id
-
     image_filename = get_image(file_id, context)
-    cropped_images = generate_crop_images(image_filename, CROPPING_PERCENT)
+
+    print(users)
+    if update.effective_user.id in users:
+        command = users[update.effective_user.id]
+
+        logging.info(f"user [{username}] has requested [{command}]")
+
+        if command == "stare":
+            generate_stare(image_filename)
+
+        del users[update.effective_user.id]
+
+    image = Image.open(image_filename)
+    cropped_images = generate_crop_images(image, CROPPING_PERCENT)
     intensyfied_filename = generate_mp4(cropped_images, image_filename.rsplit('.', 1)[0])
     send_result(intensyfied_filename, update, context)
 
+
+def set_stare(update, context):
+    """Sets user config so next image will be a stare image."""
+    global users
+    username = update.message.from_user.username
+    logging.info(f"user [{username}] is requesting a stare")
+
+    update.message.reply_text(f"Great! Send me a photo and I will try to find somebody in it.")
+
+    users[update.effective_user.id] = 'stare'
+
+
+# Extra command helps.
+help_msgs.append("If you use /stare and then send me a photo, I will look for a *face* in it and intensify the stare.")
 
 # Register bot.
 updater = Updater('948464760:AAEYE6Tzl55jD1KrpRI6LaSBjRfNoibnq_k', use_context=True)
 
 # Adds command handlers
-updater.dispatcher.add_handler(CommandHandler('start', start))
-updater.dispatcher.add_handler(CommandHandler('help', print_help))
+updater.dispatcher.add_handler(CommandHandler("start", start))
+updater.dispatcher.add_handler(CommandHandler("help", print_help))
 updater.dispatcher.add_handler(MessageHandler(Filters.photo, process_image))
+updater.dispatcher.add_handler(CommandHandler("stare", set_stare))
 
 updater.start_polling()
 

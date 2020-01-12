@@ -1,153 +1,61 @@
-#! /usr/bin/env python
-# coding=utf-8
+# -*- coding: utf-8 -*-
 
-import numpy as np
-import cv2 as cv
-import dlib
-import imutils
-import sys
+import cv2
 
-from collections import OrderedDict
-from umucv.stream import Camera
+CONFIDENCE_THRESHOLD = 0.6
 
 
-# define a dictionary that maps the indexes of the facial
-# landmarks to specific face regions
-FACIAL_LANDMARKS_IDXS = OrderedDict([
-    ("mouth", (48, 68)),
-    ("right_eyebrow", (17, 22)),
-    ("left_eyebrow", (22, 27)),
-    ("right_eye", (36, 42)),
-    ("left_eye", (42, 48)),
-    ("nose", (27, 36)),
-    ("jaw", (0, 17))
-])
+def detect_faces(image):
+    model_file = "models/opencv_face_detector_uint8.pb"
+    config_file = "models/opencv_face_detector.pbtxt"
+    net = cv2.dnn.readNetFromTensorflow(model_file, config_file)
+    height, width, _ = image.shape
+
+    # https://github.com/opencv/opencv/tree/master/samples/dnn
+    blob = cv2.dnn.blobFromImage(image, size=(300, 300), mean=[104, 177, 123])
+
+    net.setInput(blob)
+    detections = net.forward()
+
+    faces = []
+
+    for detection in detections[0, 0]:
+        _, _, confidence, x1, y1, x2, y2 = detection
+
+        if confidence > CONFIDENCE_THRESHOLD:
+            faces.append([confidence, max(int(x1 * width), 0), max(int(y1 * height), 0), int(x2 * width), int(y2 * height)])
+
+    return faces
 
 
-def shape_to_np(shape, dtype="int"):
-    # initialize the list of (x, y)-coordinates
-    coords = np.zeros((shape.num_parts, 2), dtype=dtype)
+def detect_eyes(image, x_offset, y_offset):
+    eye_cascade = cv2.CascadeClassifier("models/haarcascade_eye.xml")
+    detection = eye_cascade.detectMultiScale(cv2.cvtColor(image, cv2.COLOR_BGR2GRAY))
 
-    # loop over all facial landmarks and convert them
-    # to a 2-tuple of (x, y)-coordinates
-    for i in range(0, shape.num_parts):
-        coords[i] = (shape.part(i).x, shape.part(i).y)
+    eyes = []
 
-    # return the list of (x, y)-coordinates
-    return coords
+    for (x, y, w, h) in detection:
+        eyes.append([x + x_offset, y + y_offset, x + x_offset + w, y + y_offset + h])
 
-
-class FaceAligner:
-    def __init__(self, predictor, desiredLeftEye=(0.35, 0.35), desiredFaceWidth=256, desiredFaceHeight=None):
-
-        # store the facial landmark predictor, desired output left
-        # eye position, and desired output face width + height
-        self.predictor = predictor
-        self.desiredLeftEye = desiredLeftEye
-        self.desiredFaceWidth = desiredFaceWidth
-        self.desiredFaceHeight = desiredFaceHeight
-
-        # if the desired face height is None, set it to be the
-        # desired face width (normal behavior)
-        if self.desiredFaceHeight is None:
-            self.desiredFaceHeight = self.desiredFaceWidth
+    return eyes
 
 
-    def align(self, image, gray, rect):
-        # convert the landmark (x, y)-coordinates to a NumPy array
-        shape = self.predictor(gray, rect)
-        shape = shape_to_np(shape)
+# Testing this with an image.
+if __name__ == "__main__":
+    image = cv2.imread("images/testimg4.jpg")
+    faces = detect_faces(image)
 
-        # extract the left and right eye (x, y)-coordinates
-        (lStart, lEnd) = FACIAL_LANDMARKS_IDXS["left_eye"]
-        (rStart, rEnd) = FACIAL_LANDMARKS_IDXS["right_eye"]
-        leftEyePts = shape[lStart:lEnd]
-        rightEyePts = shape[rStart:rEnd]
+    for face in faces:
+        cv2.rectangle(image, (face[1], face[2]), (face[3], face[4]), (0, 255, 0), 2, 8)
+        cv2.putText(image, str(round(face[0], 2)), (face[1] + 5, face[2] + 25), cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 255, 0), 2)
 
-        # compute the center of mass for each eye
-        leftEyeCenter = leftEyePts.mean(axis=0).astype("int")
-        rightEyeCenter = rightEyePts.mean(axis=0).astype("int")
+        eye_roi = image[face[2]:face[4], face[1]:face[3]]
+        cv2.imwrite("images/eyeroi.jpg", eye_roi)
+        eyes = detect_eyes(eye_roi, face[1], face[2])
 
-        # compute the angle between the eye centroids
-        dY = rightEyeCenter[1] - leftEyeCenter[1]
-        dX = rightEyeCenter[0] - leftEyeCenter[0]
-        angle = np.degrees(np.arctan2(dY, dX)) - 180
-
-        # compute the desired right eye x-coordinate based on the
-        # desired x-coordinate of the left eye
-        desiredRightEyeX = 1.0 - self.desiredLeftEye[0]
-
-        # determine the scale of the new resulting image by taking
-        # the ratio of the distance between eyes in the *current*
-        # image to the ratio of distance between eyes in the
-        # *desired* image
-        dist = np.sqrt((dX ** 2) + (dY ** 2))
-        desiredDist = (desiredRightEyeX - self.desiredLeftEye[0])
-        desiredDist *= self.desiredFaceWidth
-        scale = desiredDist / dist
-
-        # compute center (x, y)-coordinates (i.e., the median point)
-        # between the two eyes in the input image
-        eyesCenter = ((leftEyeCenter[0] + rightEyeCenter[0]) // 2, (leftEyeCenter[1] + rightEyeCenter[1]) // 2)
-
-        # grab the rotation matrix for rotating and scaling the face
-        M = cv.getRotationMatrix2D(eyesCenter, angle, scale)
-
-        # update the translation component of the matrix
-        tX = self.desiredFaceWidth * 0.5
-        tY = self.desiredFaceHeight * self.desiredLeftEye[1]
-        M[0, 2] += (tX - eyesCenter[0])
-        M[1, 2] += (tY - eyesCenter[1])
-
-        # apply the affine transformation
-        (w, h) = (self.desiredFaceWidth, self.desiredFaceHeight)
-        output = cv.warpAffine(image, M, (w, h), flags=cv.INTER_CUBIC)
-
-        # return the aligned face
-        return output
+        for eye in eyes:
+            cv2.rectangle(image, (eye[0], eye[1]), (eye[2], eye[3]), (0, 127, 255), 2, 8)
+            cv2.circle(image, (int(eye[2] - ((eye[2] - eye[0]) / 2)), int(eye[3] - ((eye[3] - eye[1]) / 2))), 1, (255, 0, 0), 2, 1)
 
 
-"""predictor_path = 'data/shape_predictor_68_face_landmarks.dat'
-
-detector = dlib.get_frontal_face_detector()
-predictor = dlib.shape_predictor(predictor_path)
-
-fa = FaceAligner(predictor, desiredFaceWidth=256)
-
-cam = Camera()
-
-while True:
-    image = cam.frame.copy()
-    image = imutils.resize(image, width=800)
-    gray = cv.cvtColor(image, cv.COLOR_BGR2GRAY)
-
-    cv.imshow("Input", gray)
-    rects = detector(gray, 2)
-
-    # Captura una pulsación.
-    key = cv.waitKey(1) & 0xFF
-
-    # Muestra la tecla pulsada.
-    if key != 255:
-        print(key, end=' ')
-        sys.stdout.flush()
-
-    # Escape: Sale.
-    if key == 27:
-        break
-
-    # loop over the face detections
-    for rect in rects:
-        x = rect.left()
-        y = rect.top()
-        w = rect.right() - x
-        h = rect.bottom() - y
-
-        faceOrig = imutils.resize(image[y:y + h, x:x + w], width=256)
-        faceAligned = fa.align(image, gray, rect)
-
-        # display the output images
-        cv.imshow("Original", faceOrig)
-        cv.imshow("Aligned", faceAligned)
-
-cam.stop()"""
+    cv2.imwrite("images/resultimg.jpg", image)

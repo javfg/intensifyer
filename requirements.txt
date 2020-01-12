@@ -3,3 +3,4 @@ imageio-ffmpeg
 numpy
 Pillow
 python-telegram-bot
+opencv-python
