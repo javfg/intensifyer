@@ -168,7 +168,10 @@ def set_stare(update, context):
 help_msgs.append("If you use /stare and then send me a photo, I will look for a *face* in it and intensify the stare.")
 
 # Register bot.
-updater = Updater('948464760:AAEYE6Tzl55jD1KrpRI6LaSBjRfNoibnq_k', use_context=True)
+with open("secrets") as secret_store:
+    telegram_token = secret_store.readline()
+
+updater = Updater(telegram_token, use_context=True)
 
 # Adds command handlers
 updater.dispatcher.add_handler(CommandHandler("start", start))
