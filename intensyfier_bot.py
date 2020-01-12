@@ -36,7 +36,7 @@ def print_help(update, context):
 
     logging.info(f"user [{username}] asked for help")
 
-    update.message.reply_text("For now, you can send me a pic of something you want to itensify.")
+    update.message.reply_text("For now, you can send me a pic of something you want to intensify.")
 
 
 def get_todays_path(now):
