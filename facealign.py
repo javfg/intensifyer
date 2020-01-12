@@ -2,7 +2,7 @@
 
 import cv2
 
-CONFIDENCE_THRESHOLD = 0.6
+CONFIDENCE_THRESHOLD = 0.7
 
 
 def detect_faces(image):
