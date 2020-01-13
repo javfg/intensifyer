@@ -32,7 +32,7 @@ def start(update, context):
     """Sends welcome message when /start is issued."""
     username = update.message.from_user.username
 
-    logging.info(f"user [{username}] said hello")
+    logger.info(f"user [{username}] said hello")
 
     update.message.reply_text(f"Hello {username}. Send me pics or ask for /help!")
 
@@ -42,7 +42,7 @@ def print_help(update, context):
     global help_msgs
     username = update.message.from_user.username
 
-    logging.info(f"user [{username}] asked for help")
+    logger.info(f"user [{username}] asked for help")
 
     for help_msg in help_msgs:
         context.bot.send_message(chat_id=update.message.chat_id,
@@ -66,7 +66,7 @@ def get_image(file_id, context):
     image_subdir = get_todays_path(now)
     image_filename = f"{image_subdir}/{now.strftime('%H-%M-%S')}-{file_id}.jpg"
 
-    logging.info(f"downloading image [{image['file_path']}] to [{image_filename}]")
+    logger.info(f"downloading image [{image['file_path']}] to [{image_filename}]")
 
     image.download(image_filename)
 
@@ -77,7 +77,7 @@ def send_result(intensyfied_filename, update, context):
     """Sends image from bot to user."""
     username = update.message.from_user.username
 
-    logging.info(f"sending result to [{username}]")
+    logger.info(f"sending result to [{username}]")
 
     intensyfied_video = open(intensyfied_filename, "rb")
 
@@ -86,7 +86,7 @@ def send_result(intensyfied_filename, update, context):
 
 def generate_crop_images(image, cropping_percent):
     """Generates cropped parts of the animation."""
-    logging.info(f"generating crops")
+    logger.info(f"generating crops")
 
     width, height = image.size
     crop_size = width * (cropping_percent / 100)
@@ -98,7 +98,7 @@ def generate_crop_images(image, cropping_percent):
 
 def generate_mp4(image_list, image_filename):
     """Generates a mp4 animation with imageio."""
-    logging.info(f"generating mp4 for [{image_filename}]")
+    logger.info(f"generating mp4 for [{image_filename}]")
 
     intensyfied_filename = f"{image_filename}.mp4"
     mp4_writer = imageio.get_writer(intensyfied_filename, fps=60)
@@ -115,7 +115,7 @@ def generate_mp4(image_list, image_filename):
 
 def generate_stare(image_filename):
     """Finds faces in image and crops one of them to process."""
-    logging.info(f"extracting stare from [{image_filename}]")
+    logger.info(f"extracting stare from [{image_filename}]")
 
     image = cv2.imread(image_filename)
     faces = detect_faces(image)
@@ -131,7 +131,7 @@ def process_image(update, context):
     """Main task. Get image, cut some pixels from each side, create a gif and send back."""
     global users
     username = update.message.from_user.username
-    logging.info(f"user [{username}] sent an image")
+    logger.info(f"user [{username}] sent an image")
 
     file_id = update.message.photo[-1].file_id
     image_filename = get_image(file_id, context)
@@ -140,7 +140,7 @@ def process_image(update, context):
     if update.effective_user.id in users:
         command = users[update.effective_user.id]
 
-        logging.info(f"user [{username}] has requested [{command}]")
+        logger.info(f"user [{username}] has requested [{command}]")
 
         if command == "stare":
             generate_stare(image_filename)
@@ -157,7 +157,7 @@ def set_stare(update, context):
     """Sets user config so next image will be a stare image."""
     global users
     username = update.message.from_user.username
-    logging.info(f"user [{username}] is requesting a stare")
+    logger.info(f"user [{username}] is requesting a stare")
 
     update.message.reply_text(f"Great! Send me a photo and I will try to find somebody in it.")
 
@@ -181,6 +181,6 @@ updater.dispatcher.add_handler(CommandHandler("stare", set_stare))
 
 updater.start_polling()
 
-logging.info("intensyfier bot started")
+logger.info("intensyfier bot started")
 
 updater.idle()
