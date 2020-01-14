@@ -1,2 +1,2 @@
 # intensyfier
-Telegram bot that intesifies your pictures!
+Telegram bot that intensifies your pictures!
