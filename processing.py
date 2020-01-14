@@ -55,7 +55,6 @@ def generate_cropped_images(image, cropping_percent):
     """Generates cropped parts of the animation."""
     logger.info(f"generating cropped images")
 
-    print(image.size)
     width, height = image.size
     crop_size = width * (cropping_percent / 100)
     image_lcrop = image.crop((crop_size, 0, width, height))
@@ -79,9 +78,14 @@ def generate_stare(image):
     """Finds faces in image and crops one of them to process."""
     logger.info(f"extracting stare")
 
-    faces = detect_faces(numpy.array(image))
+    np_image = numpy.array(image)
+
+    faces = detect_faces(np_image)
 
     if len(faces) == 0:
         return image
 
-    return image[faces[0][2]:faces[0][4], faces[0][1]:faces[0][3]]
+    face_np_image = np_image[faces[0][2]:faces[0][4], faces[0][1]:faces[0][3]]
+    face_image = Image.fromarray(face_np_image.astype('uint8'), 'RGB')
+
+    return face_image

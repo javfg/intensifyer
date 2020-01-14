@@ -43,8 +43,6 @@ def set_stare(update, context):
 
     context.user_data['command'] = 'stare'
 
-    print(context.user_data)
-
 
 #
 # Action commands.

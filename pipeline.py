@@ -68,7 +68,7 @@ def pipe(image_filename, update, context):
 
     if command == "stare":
         copy_image(image_filename, f"{image_filename_no_ext}-full.jpg")
-        image = generate_stare(image_filename)
+        image = generate_stare(image)
         context.user_data[user_id] = "standard"
 
     cropped_images = [resize_image(image) for image in generate_cropped_images(image, config.CROPPING_PERCENT)]
