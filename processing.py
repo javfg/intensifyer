@@ -37,10 +37,11 @@ def convert_webp_to_jpg(image_filename):
 
     image = Image.open(image_filename)
 
-    # Remove colors from transparent pixels.
-    background = Image.new(image.mode[:-1], image.size, "#fff")
-    background.paste(image, image.split()[-1])
-    image = background
+    if (image.mode != "RGB"):
+        # Remove colors from transparent pixels.
+        background = Image.new(image.mode[:-1], image.size, "#fff")
+        background.paste(image, image.split()[-1])
+        image = background
 
     new_image_filename = f"{image_filename.rsplit('.', 1)[0]}.jpg"
 
