@@ -60,8 +60,9 @@ def take_sticker(update, context):
 
 
 def pipe(image_filename, update, context):
-    user_id = update.effective_user.id
     command = context.user_data['command']
+    logger.info(f"processing command [{command}]")
+
     image_filename_no_ext = image_filename.rsplit('.', 1)[0]
 
     image = Image.open(image_filename)
@@ -69,7 +70,7 @@ def pipe(image_filename, update, context):
     if command == "stare":
         copy_image(image_filename, f"{image_filename_no_ext}-full.jpg")
         image = generate_stare(image)
-        context.user_data[user_id] = "standard"
+        context.user_data['command'] = "standard"
 
     cropped_images = [resize_image(image) for image in generate_cropped_images(image, config.CROPPING_PERCENT)]
     animation = generate_animation(cropped_images, config.INTENSITY, 3, config.FPS)

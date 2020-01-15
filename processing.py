@@ -57,10 +57,12 @@ def generate_cropped_images(image, cropping_percent):
 
     width, height = image.size
     crop_size = width * (cropping_percent / 100)
-    image_lcrop = image.crop((crop_size, 0, width, height))
-    image_rcrop = image.crop((0, 0, width - crop_size, height))
+    image_lt_crop = image.crop((crop_size, crop_size, width, height))
+    image_lb_crop = image.crop((crop_size, 0, width, height - crop_size))
+    image_rt_crop = image.crop((0, crop_size, width - crop_size, height))
+    image_rb_crop = image.crop((0, 0, width - crop_size, height - crop_size))
 
-    return [image_lcrop, image_rcrop]
+    return [image_lt_crop, image_lb_crop, image_rt_crop, image_rb_crop]
 
 
 def generate_animation(image_list, intensity, duration, fps):
