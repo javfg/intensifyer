@@ -8,11 +8,13 @@ from telegram import ParseMode
 import config
 from iostuff import get_image, copy_image, save_mp4, send_video
 from processing import (
+    caption_images,
     convert_webp_to_jpg,
     generate_stare,
     generate_cropped_images,
     generate_animation,
     resize_image,
+    fix_size_image,
 )
 from utils import check_restrictions
 
@@ -38,8 +40,9 @@ def take_photo(update, context):
         return
 
     image_filename = get_image(image, context, "jpg")
+    caption = update.message.caption or ""
 
-    pipe(image_filename, update, context)
+    pipe(image_filename, update, context, caption)
 
 
 def take_sticker(update, context):
@@ -55,13 +58,14 @@ def take_sticker(update, context):
 
     sticker_filename = get_image(update.message.sticker, context, "webp")
     image_filename = convert_webp_to_jpg(sticker_filename)
+    caption = update.message.caption or ""
 
-    pipe(image_filename, update, context)
+    pipe(image_filename, update, context, caption)
 
 
-def pipe(image_filename, update, context):
+def pipe(image_filename, update, context, caption):
     command = context.user_data['command']
-    logger.info(f"processing command [{command}]")
+    logger.info(f"processing command [{command}] with caption [{caption}]")
 
     image_filename_no_ext = image_filename.rsplit('.', 1)[0]
 
@@ -72,7 +76,9 @@ def pipe(image_filename, update, context):
         image = generate_stare(image)
         context.user_data['command'] = "standard"
 
-    cropped_images = [resize_image(image) for image in generate_cropped_images(image, config.CROPPING_PERCENT)]
+    cropped_images = [fix_size_image(image) for image in generate_cropped_images(resize_image(image), config.CROPPING_PERCENT)]
+    if caption != "":
+        caption_images(cropped_images, caption)
     animation = generate_animation(cropped_images, config.INTENSITY, 3, config.FPS)
     video_filename = f"{image_filename_no_ext}.mp4"
     save_mp4(animation, video_filename, config.FPS)

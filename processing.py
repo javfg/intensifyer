@@ -4,9 +4,10 @@ import logging
 
 import cv2
 import numpy
-from PIL import Image
+from PIL import Image, ImageFont, ImageDraw
 
 from facealign import detect_faces
+import config
 
 
 # Logging.
@@ -14,17 +15,40 @@ logging.basicConfig(format='[%(asctime)s] - %(levelname)s - %(message)s', level=
 logger = logging.getLogger(__name__)
 
 
-def resize_image(image):
-    """Makes sure image dimensions are divisible by 16 and not too big."""
+def fix_size_image(image):
+    """Makes sure image dimensions divisible by 16."""
     np_image = numpy.array(image)
 
-    new_y = np_image.shape[0] - np_image.shape[0] % 16
-    new_x = np_image.shape[1] - np_image.shape[1] % 16
+    h = np_image.shape[0] - np_image.shape[0] % 16
+    w = np_image.shape[1] - np_image.shape[1] % 16
 
-    if new_x != np_image.shape[0] or new_y != np_image.shape[1]:
-        logger.info(f"resizing image to ({new_x}, {new_y})")
+    if w != np_image.shape[0] or h != np_image.shape[1]:
+        logger.info(f"resizing image to ({w}, {h})")
 
-        resized_image = cv2.resize(np_image, (new_x, new_y), interpolation=cv2.INTER_AREA)
+        resized_image = cv2.resize(np_image, (w, h), interpolation=cv2.INTER_AREA)
+
+        return Image.fromarray(resized_image.astype('uint8'), 'RGB')
+
+    return image
+
+
+def resize_image(image):
+    """Makes sure image dimensions are not too big."""
+    np_image = numpy.array(image)
+    h, w, _ = np_image.shape
+
+    if w > config.OUTPUT_SIZE:
+        h = int(h * config.OUTPUT_SIZE / w)
+        w = config.OUTPUT_SIZE
+
+    if h > config.OUTPUT_SIZE:
+        w = int(w * config.OUTPUT_SIZE / h)
+        h = config.OUTPUT_SIZE
+
+    if w != np_image.shape[0] or h != np_image.shape[1]:
+        logger.info(f"resizing image to ({w}, {h})")
+
+        resized_image = cv2.resize(np_image, (w, h), interpolation=cv2.INTER_AREA)
 
         return Image.fromarray(resized_image.astype('uint8'), 'RGB')
 
@@ -53,10 +77,11 @@ def convert_webp_to_jpg(image_filename):
 
 def generate_cropped_images(image, cropping_percent):
     """Generates cropped parts of the animation."""
-    logger.info(f"generating cropped images")
-
     width, height = image.size
-    crop_size = width * (cropping_percent / 100)
+    cropsize_multiplier = config.OUTPUT_SIZE / min([width, height])
+    crop_size = int(min([width, height]) * (cropping_percent / 100) * cropsize_multiplier)
+    logger.info(f"generating cropped images (crop size [{crop_size} px])")
+
     image_lt_crop = image.crop((crop_size, crop_size, width, height))
     image_lb_crop = image.crop((crop_size, 0, width, height - crop_size))
     image_rt_crop = image.crop((0, crop_size, width - crop_size, height))
@@ -91,3 +116,25 @@ def generate_stare(image):
     face_image = Image.fromarray(face_np_image.astype('uint8'), 'RGB')
 
     return face_image
+
+
+def caption_images(image_list, caption):
+    """Captions an image. For now, lets assume order is LT, LB, RT, RB."""
+    logger.info(f"captioning [{caption}] into images")
+
+    caption = f"{caption[:32].upper()}\nINTENSIFIES"
+
+    for image in image_list:
+        draw = ImageDraw.Draw(image)
+        font = ImageFont.truetype("resources/impact.ttf", int(image.size[1] / 10))
+        text_width, text_height = draw.textsize(caption, font)
+
+        draw.multiline_text(
+            xy=(int((image.size[0] - text_width) / 2), int(image.size[1] * .95 - text_height)),
+            text=caption,
+            fill=(255, 255, 255),
+            font=font,
+            align="center",
+            stroke_width=3,
+            stroke_fill=(63, 63, 63)
+        )
