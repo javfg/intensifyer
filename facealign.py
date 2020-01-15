@@ -2,7 +2,7 @@
 
 import cv2
 
-CONFIDENCE_THRESHOLD = 0.7
+CONFIDENCE_THRESHOLD = 0.6
 
 
 def detect_faces(image):
@@ -42,7 +42,7 @@ def detect_eyes(image, x_offset, y_offset):
 
 # Testing this with an image.
 if __name__ == "__main__":
-    image = cv2.imread("images/testimg4.jpg")
+    image = cv2.imread("images/testimg.jpg")
     faces = detect_faces(image)
 
     for face in faces:

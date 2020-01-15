@@ -106,13 +106,14 @@ def generate_stare(image):
     logger.info(f"extracting stare")
 
     np_image = numpy.array(image)
+    np_image = cv2.cvtColor(np_image, cv2.COLOR_RGB2BGR)
 
     faces = detect_faces(np_image)
 
     if len(faces) == 0:
         return image
 
-    face_np_image = np_image[faces[0][2]:faces[0][4], faces[0][1]:faces[0][3]]
+    face_np_image = cv2.cvtColor(np_image[faces[0][2]:faces[0][4], faces[0][1]:faces[0][3]], cv2.COLOR_BGR2RGB)
     face_image = Image.fromarray(face_np_image.astype('uint8'), 'RGB')
 
     return face_image
