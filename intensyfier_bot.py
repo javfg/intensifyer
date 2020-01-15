@@ -15,6 +15,7 @@ logger = logging.getLogger(__name__)
 
 # Help messages.
 help_msgs = ["Here is the *help*!", "Send me a *photo* and I will intensify it."]
+help_msgs.append("If you send a *caption* with the photo. You do not need to add the word _intensifies_, I will add it for you!")
 help_msgs.append("If you use /stare and then send me a photo, I will look for a *face* in it and intensify the stare.")
 
 # Context: user list.
