@@ -127,7 +127,7 @@ def caption_images(image_list, caption):
 
     for image in image_list:
         draw = ImageDraw.Draw(image)
-        font = ImageFont.truetype("resources/impact.ttf", int(image.size[1] / 10))
+        font = ImageFont.truetype("resources/impact.ttf", int(image.size[1] / 8))
         text_width, text_height = draw.textsize(caption, font)
 
         draw.multiline_text(
@@ -137,5 +137,5 @@ def caption_images(image_list, caption):
             font=font,
             align="center",
             stroke_width=3,
-            stroke_fill=(63, 63, 63)
+            stroke_fill=(31, 31, 31)
         )
