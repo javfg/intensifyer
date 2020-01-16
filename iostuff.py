@@ -15,7 +15,7 @@ logging.basicConfig(format='[%(asctime)s] - %(levelname)s - %(message)s', level=
 logger = logging.getLogger(__name__)
 
 
-def get_image(image, context, format):
+def get_image(image, context, format, user_str):
     """Gets image from user to bot and saves a copy."""
     now = datetime.now()
     file_id = image['file_id']
@@ -23,7 +23,7 @@ def get_image(image, context, format):
     image_filename = f"{image_subdir}/{now.strftime('%H-%M-%S')}-{file_id}.{format}"
     image = context.bot.get_file(file_id)
 
-    logger.info(f"downloading image [{image['file_path']}] to [{image_filename}]")
+    logger.info(f"[{user_str}] fetching image [{image['file_path']}] to [{image_filename}]")
 
     image.download(image_filename)
 
@@ -35,9 +35,9 @@ def copy_image(origin, destination):
     shutil.copyfile(origin, destination)
 
 
-def save_mp4(image_list, video_filename, fps):
+def save_mp4(image_list, video_filename, fps, user_str):
     """Generates a mp4 animation with imageio."""
-    logger.info(f"saving mp4 [{video_filename}]")
+    logger.info(f"[{user_str}] saving mp4 [{video_filename}]")
 
     mp4_writer = imageio.get_writer(video_filename, fps=fps)
 
@@ -45,10 +45,9 @@ def save_mp4(image_list, video_filename, fps):
         mp4_writer.append_data(numpy.array(image))
 
 
-def send_video(video_filename, update, context):
+def send_video(video_filename, update, context, user_str):
     """Sends video from bot to user."""
-    username = update.message.from_user.username
-    logger.info(f"sending result to [{username}]")
+    logger.info(f"[{user_str}] sending video [{video_filename}]")
 
     video_file = open(video_filename, "rb")
 

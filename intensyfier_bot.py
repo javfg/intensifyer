@@ -5,7 +5,7 @@ import logging
 
 from telegram.ext import Updater, CommandHandler, MessageHandler, Filters, CallbackContext
 
-from commands import start, print_help, set_stare
+from commands import start, print_help, set_stare, set_zoomstare
 from pipeline import take_photo, take_sticker
 
 
@@ -19,7 +19,6 @@ help_msgs.append("If you send a *caption* with the photo. You do not need to add
 help_msgs.append("If you use /stare and then send me a photo, I will look for a *face* in it and intensify the stare.")
 
 # Context: user list.
-CallbackContext.user_data = {'command': "standard"}
 CallbackContext.chat_data = {'help_msgs': help_msgs}
 
 # Register bot.
@@ -34,6 +33,7 @@ updater.dispatcher.add_handler(CommandHandler("help", print_help))
 updater.dispatcher.add_handler(MessageHandler(Filters.photo, take_photo))
 updater.dispatcher.add_handler(MessageHandler(Filters.sticker, take_sticker))
 updater.dispatcher.add_handler(CommandHandler("stare", set_stare))
+updater.dispatcher.add_handler(CommandHandler("zoomstare", set_zoomstare))
 
 # Start loop.
 updater.start_polling()

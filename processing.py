@@ -15,7 +15,7 @@ logging.basicConfig(format='[%(asctime)s] - %(levelname)s - %(message)s', level=
 logger = logging.getLogger(__name__)
 
 
-def fix_size_image(image):
+def fixsize_image(image):
     """Makes sure image dimensions divisible by 16."""
     np_image = numpy.array(image)
 
