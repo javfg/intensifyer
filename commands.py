@@ -42,7 +42,7 @@ def set_stare(update, context):
 
     update.message.reply_text(f"Great! Send me a photo and I will try to find somebody in it.")
 
-    context.user_data[f"{update.effective_user.id}.command"] = 'stare'
+    context.user_data['command'] = 'stare'
 
 
 def set_zoomstare(update, context):
@@ -51,7 +51,7 @@ def set_zoomstare(update, context):
 
     update.message.reply_text(f"Great! Send me a photo and I will try to find somebody in it.")
 
-    context.user_data[f"{update.effective_user.id}.command"] = 'zoomstare'
+    context.user_data['command'] = 'zoomstare'
 
 
 
