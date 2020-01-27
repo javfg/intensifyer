@@ -55,6 +55,13 @@ def resize_image(image):
     return image
 
 
+def sticker_resize(image):
+    """Makes sure output image is 512x512."""
+    np_image = numpy.array(image)
+
+    return cv2.resize(np_image, (512, 512), interpolation=cv2.INTER_AREA)
+
+
 def convert_webp_to_jpg(image_filename):
     """Coverts a sticker in webp format to a normal jpg image."""
     logger.info(f"converting webp sticker [{image_filename}] to jpg")

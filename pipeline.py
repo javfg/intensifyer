@@ -1,8 +1,10 @@
 # -*- coding: utf-8 -*-
 
 import logging
+import os
 
 from PIL import Image
+
 
 import config
 from iostuff import get_image, copy_image, save_mp4, send_video
@@ -41,21 +43,25 @@ def take_sticker(update, context):
 
     if check_sticker_restrictions(update):
         sticker_filename = get_image(update.message.sticker, context, "webp", user_str)
-        image_filename = convert_webp_to_jpg(sticker_filename)
         caption = update.message.caption or ""
-        pipe(image_filename, update, context, caption)
+        pipe(sticker_filename, update, context, caption, type="sticker")
 
 
-def pipe(image_filename, update, context, caption):
-    command = context.user_data.get("command", "standard")
+def pipe(image_filename, update, context, caption, type="image"):
+    command = context.user_data.get("command", "image")
     user_str = user_data(update)
-    logger.info(f"[{user_str}] issued [{command}] with caption [{caption}]")
+    logger.info(f"[{user_str}] issued [{command}] with caption [{caption}] on type [{type}]")
 
-    image_filename_no_ext = image_filename.rsplit('.', 1)[0]
-    image = Image.open(image_filename)
+    image_filename_split = os.path.splitext(image_filename)
+
+    if type == "image":
+        image = Image.open(image_filename)
+    # This should be removed.
+    elif type == "sticker":
+        image = Image.open(convert_webp_to_jpg(image_filename))
 
     if command == "stare":
-        copy_image(image_filename, f"{image_filename_no_ext}-full.jpg")
+        copy_image(image_filename, f"{image_filename_split[0]}-full{image_filename_split[1]}")
         image = generate_stare(image)
         context.user_data.pop("command")
 
@@ -66,6 +72,9 @@ def pipe(image_filename, update, context, caption):
         caption_images(cropped_images, caption)
 
     animation = generate_animation(cropped_images, config.INTENSITY, 3, config.FPS)
-    video_filename = f"{image_filename_no_ext}.mp4"
-    save_mp4(animation, video_filename, config.FPS, user_str)
-    send_video(video_filename, update, context, user_str)
+    video_filename = f"{image_filename_split[0]}.mp4"
+
+    # This should be refactored to do something else with stickers.
+    if type == "image" or type == "sticker":
+        save_mp4(animation, video_filename, config.FPS, user_str)
+        send_video(video_filename, update, context, user_str)

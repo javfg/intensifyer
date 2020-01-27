@@ -2,7 +2,7 @@
 
 import cv2
 
-CONFIDENCE_THRESHOLD = 0.6
+CONFIDENCE_THRESHOLD = 0.1
 
 
 def detect_faces(image):
@@ -50,12 +50,12 @@ if __name__ == "__main__":
         cv2.putText(image, str(round(face[0], 2)), (face[1] + 5, face[2] + 25), cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 255, 0), 2)
 
         eye_roi = image[face[2]:face[4], face[1]:face[3]]
-        cv2.imwrite("images/eyeroi.jpg", eye_roi)
-        eyes = detect_eyes(eye_roi, face[1], face[2])
+        # cv2.imwrite("images/eyeroi.jpg", eye_roi)
+        # eyes = detect_eyes(eye_roi, face[1], face[2])
 
-        for eye in eyes:
-            cv2.rectangle(image, (eye[0], eye[1]), (eye[2], eye[3]), (0, 127, 255), 2, 8)
-            cv2.circle(image, (int(eye[2] - ((eye[2] - eye[0]) / 2)), int(eye[3] - ((eye[3] - eye[1]) / 2))), 1, (255, 0, 0), 2, 1)
+        # for eye in eyes:
+        #     cv2.rectangle(image, (eye[0], eye[1]), (eye[2], eye[3]), (0, 127, 255), 2, 8)
+        #     cv2.circle(image, (int(eye[2] - ((eye[2] - eye[0]) / 2)), int(eye[3] - ((eye[3] - eye[1]) / 2))), 1, (255, 0, 0), 2, 1)
 
 
     cv2.imwrite("images/resultimg.jpg", image)

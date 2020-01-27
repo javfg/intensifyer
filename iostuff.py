@@ -51,4 +51,4 @@ def send_video(video_filename, update, context, user_str):
 
     video_file = open(video_filename, "rb")
 
-    context.bot.send_video(chat_id=update.message.chat_id, video=video_file, supports_streaming=True)
+    context.bot.send_animation(chat_id=update.message.chat_id, animation=video_file)
