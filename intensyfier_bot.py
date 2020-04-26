@@ -23,7 +23,7 @@ CallbackContext.chat_data = {'help_msgs': help_msgs}
 
 # Register bot.
 with open("secrets") as secret_store:
-    telegram_token = secret_store.readline()
+    telegram_token = secret_store.readline().rstrip("\n")
 
 updater = Updater(telegram_token, use_context=True)
 
