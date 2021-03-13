@@ -1,0 +1,18 @@
+# Intensyfier docker-compose!
+# 2021-03-13
+
+version: "3.3"
+
+services:
+  intensyfier:
+    build:
+      context: '.'
+    container_name: intensyfier
+    restart: unless-stopped
+    volumes:
+      - type: bind
+        source: ./images
+        target: /home/intesyfier/images
+
+volumes:
+  images:

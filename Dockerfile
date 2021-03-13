@@ -11,7 +11,7 @@ WORKDIR /home/intensyfier
 # Install prerequisites
 ADD ./requirements.txt /home/intensyfier
 RUN pip install -r requirements.txt
-RUN apt-get update && apt-get -y install libglib2.0 libsm6 libxext6 libxrender-dev
+RUN apt-get update && apt-get -y install libglib2.0 libsm6 libxext6 libxrender-dev libgl1-mesa-glx
 
 # Add app
 ADD . /home/intensyfier
