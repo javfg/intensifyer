@@ -1,14 +1,17 @@
 # Intensyfier docker-compose!
 # 2021-03-13
 
-version: "3.3"
+version: '3.3'
 
 services:
   intensyfier:
     build:
       context: '.'
     container_name: intensyfier
-    restart: unless-stopped
+    healthcheck:
+      test: ['CMD', 'curl', '-f', 'http://127.0.0.1:5000/health']
+    restart: '${DOCKER_RESTART_POLICY:-unless-stopped}'
+    stop_grace_period: '${DOCKER_STOP_GRACE_PERIOD:-3s}'
     volumes:
       - type: bind
         source: ./images

@@ -4,17 +4,21 @@
 FROM python:3.8.2-slim
 LABEL maintainer="Javier Ferrer <javier.f.g@um.es>"
 
-# Working directory
-RUN mkdir -p /home/intensyfier
 WORKDIR /home/intensyfier
 
-# Install prerequisites
-ADD ./requirements.txt /home/intensyfier
+ENV BUILD_DEPS="" \
+  RUN_DEPS="libglib2.0 libsm6 libxext6 libxrender-dev libgl1-mesa-glx curl"
+
+RUN apt-get update \
+  && apt-get install -y ${BUILD_DEPS} ${RUN_DEPS} --no-install-recommends \
+  && rm -rf /var/lib/apt/lists/* \
+  && rm -rf /usr/share/doc && rm -rf /usr/share/man \
+  && apt-get purge -y --auto-remove ${BUILD_DEPS} \
+  && apt-get clean
+
+COPY requirements.txt requirements.txt
 RUN pip install -r requirements.txt
-RUN apt-get update && apt-get -y install libglib2.0 libsm6 libxext6 libxrender-dev libgl1-mesa-glx
 
-# Add app
-ADD . /home/intensyfier
+COPY . .
 
-# Launch container
-CMD ["./intensyfier_bot.py"]
+CMD ["./start.sh"]
