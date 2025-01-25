@@ -1,4 +1,4 @@
-# Settings.
+# Settings
 CROPPING_PERCENT = 1.5
 INTENSITY = 2
 FPS = 60

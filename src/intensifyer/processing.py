@@ -1,18 +1,11 @@
-# -*- coding: utf-8 -*-
-
-import logging
-
 import cv2
 import numpy
-from PIL import Image, ImageFont, ImageDraw
+from loguru import logger
+from PIL import Image, ImageDraw, ImageFont
 
-from facealign import detect_faces
-import config
+import intensifyer.config as config
 
-
-# Logging.
-logging.basicConfig(format='[%(asctime)s] - %(levelname)s - %(message)s', level=logging.INFO)
-logger = logging.getLogger(__name__)
+from .facealign import detect_faces
 
 
 def fixsize_image(image):
@@ -23,11 +16,11 @@ def fixsize_image(image):
     w = np_image.shape[1] - np_image.shape[1] % 16
 
     if w != np_image.shape[0] or h != np_image.shape[1]:
-        logger.info(f"resizing image to ({w}, {h})")
+        logger.debug(f"resizing image to ({w}, {h})")
 
         resized_image = cv2.resize(np_image, (w, h), interpolation=cv2.INTER_AREA)
 
-        return Image.fromarray(resized_image.astype('uint8'), 'RGB')
+        return Image.fromarray(resized_image.astype("uint8"), "RGB")
 
     return image
 
@@ -46,11 +39,11 @@ def resize_image(image):
         h = config.OUTPUT_SIZE
 
     if w != np_image.shape[0] or h != np_image.shape[1]:
-        logger.info(f"resizing image to ({w}, {h})")
+        logger.debug(f"resizing image to ({w}, {h})")
 
         resized_image = cv2.resize(np_image, (w, h), interpolation=cv2.INTER_AREA)
 
-        return Image.fromarray(resized_image.astype('uint8'), 'RGB')
+        return Image.fromarray(resized_image.astype("uint8"), "RGB")
 
     return image
 
@@ -68,7 +61,7 @@ def convert_webp_to_jpg(image_filename):
 
     image = Image.open(image_filename)
 
-    if (image.mode != "RGB"):
+    if image.mode != "RGB":
         # Remove colors from transparent pixels.
         background = Image.new(image.mode[:-1], image.size, "#fff")
         background.paste(image, image.split()[-1])
@@ -99,7 +92,7 @@ def generate_cropped_images(image, cropping_percent):
 
 def generate_animation(image_list, intensity, duration, fps):
     """Generates the frames for some seconds of intensification."""
-    logger.info(f"generating animation")
+    logger.info("generating animation")
 
     multiply_images = [y for x in image_list for y in (x,) * intensity]
     loop_duration = len(multiply_images) / fps
@@ -110,7 +103,7 @@ def generate_animation(image_list, intensity, duration, fps):
 
 def generate_stare(image):
     """Finds faces in image and crops one of them to process."""
-    logger.info(f"extracting stare")
+    logger.info("extracting stare")
 
     np_image = numpy.array(image)
     np_image = cv2.cvtColor(np_image, cv2.COLOR_RGB2BGR)
@@ -120,8 +113,8 @@ def generate_stare(image):
     if len(faces) == 0:
         return image
 
-    face_np_image = cv2.cvtColor(np_image[faces[0][2]:faces[0][4], faces[0][1]:faces[0][3]], cv2.COLOR_BGR2RGB)
-    face_image = Image.fromarray(face_np_image.astype('uint8'), 'RGB')
+    face_np_image = cv2.cvtColor(np_image[faces[0][2] : faces[0][4], faces[0][1] : faces[0][3]], cv2.COLOR_BGR2RGB)
+    face_image = Image.fromarray(face_np_image.astype("uint8"), "RGB")
 
     return face_image
 
@@ -133,16 +126,27 @@ def caption_images(image_list, caption):
     caption = f"{caption[:32].upper()}\nINTENSIFIES"
 
     for image in image_list:
+        font_size = int(max(image.size) / 16)
         draw = ImageDraw.Draw(image)
-        font = ImageFont.truetype("resources/impact.ttf", int(image.size[1] / 8))
-        text_width, text_height = draw.textsize(caption, font)
+        font = ImageFont.truetype("resources/impact.ttf", size=font_size)
+
+        # Get text dimensions
+        bbox = draw.multiline_textbbox((0, 0), caption, font=font, align="center")
+        text_width = bbox[2] - bbox[0]
+        text_height = bbox[3] - bbox[1]
+
+        # Calculate position
+        x = (image.size[0] - text_width) / 2
+        y = image.size[1] - text_height - (image.size[1] * 0.05)  # 5% padding from bottom
 
         draw.multiline_text(
-            xy=(int((image.size[0] - text_width) / 2), int(image.size[1] * .95 - text_height)),
+            xy=(x, y),
             text=caption,
             fill=(255, 255, 255),
             font=font,
             align="center",
             stroke_width=3,
-            stroke_fill=(31, 31, 31)
+            stroke_fill=(31, 31, 31),
         )
+
+    return image_list
