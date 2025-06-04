@@ -5,6 +5,7 @@ services:
   intensifyer:
     build:
       context: '.'
+    user: '${INTENSIFYER_UID:-1000}:${INTENSIFYER_GID:-1000}'
     container_name: bot_intensifyer
     environment:
       - TELEGRAM_TOKEN=${TELEGRAM_TOKEN}
@@ -15,6 +16,4 @@ services:
     volumes:
       - ./images:/home/intensifyer/images
       - ./logs:/home/intensifyer/logs
-
-volumes:
-  images:
+      - ./cache:/.cache
